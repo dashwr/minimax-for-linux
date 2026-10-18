@@ -1,0 +1,12 @@
+{
+ "electron": {"version":"42.8.0","sha256":"e21d3cacf11fc8a46b8f351e5ca10e068c7c1bfff1bea7552c21049c1f1199a3","path":"electron-42.8.0/electron","node_abi":146},
+ "natives": {
+  "node-pty": {"version":"1.1.0","node":"native-build/node_modules/node-pty/build/Release/pty.node"},
+  "better-sqlite3": {"version":"12.11.1","node":"native-build/node_modules/better-sqlite3/build/Release/better_sqlite3.node"},
+  "@trycua/cua-driver-linux-x64-gnu": {"version":"0.22.1","node":"trycua-cua-driver-linux-x64-gnu-0.22.1/cua_driver_node_runtime.node","so":"trycua-cua-driver-linux-x64-gnu-0.22.1/libcua_driver_sdk.so"},
+  "@ubjs/node-linux-x64-gnu": {"version":"0.31.0-3","node":"ubjs-node-linux-x64-gnu-0.31.0-3/uniffi-runtime-napi.linux-x64-gnu.node"},
+  "node-screenshots-linux-x64-gnu": {"version":"0.2.8","node":"node-screenshots-linux-x64-gnu-0.2.8/node-screenshots.linux-x64-gnu.node"},
+  "@mariozechner/clipboard-linux-x64-gnu": {"version":"0.3.9","node":"mariozechner-clipboard-linux-x64-gnu-0.3.9/clipboard.linux-x64-gnu.node","tgz":"npm-packs/mariozechner-clipboard-linux-x64-gnu-0.3.9.tgz","integrity":"sha512-WORrMLd6EpElEME7JRKfSaY34nW1P5LbdgK5YNCS1ncG2LqmITsSMEJ8nh2mpvxb3TxqbOOKgY7k9eMJYlW9Mw=="}
+ },
+ "tested": "clipboard-linux text+image roundtrip wayland (tests/natives2/clip.cjs); ELECTRON_RUN_AS_NODE=1 load of all five; sqlite :memory: insert/select ok; pty echo ok"
+}

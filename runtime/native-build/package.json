@@ -1,0 +1,1 @@
+{"name":"mmx-native-build","private":true,"version":"1.0.0","dependencies":{"node-pty":"1.1.0","better-sqlite3":"12.11.1"}}

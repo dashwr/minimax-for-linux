@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+# lançador do MiniMax Code (port linux não oficial). MMX_FLAGS acrescenta flags do chromium.
+APP="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/../lib/minimax-code" && pwd)"
+unset ELECTRON_RUN_AS_NODE NODE_COMPILE_CACHE
+FLAGS=()
+if [ -n "${WAYLAND_DISPLAY:-}" ] && [ "${MMX_X11:-0}" != 1 ]; then
+  FLAGS=(--ozone-platform=wayland --enable-features=VaapiVideoDecoder,VaapiIgnoreDriverChecks,AcceleratedVideoDecodeLinuxGL,WaylandWindowDecorations)
+fi
+# sem user namespaces e sem chrome-sandbox setuid o chromium não sobe: MMX_NO_SANDBOX=1 desliga o sandbox (menos seguro)
+[ "${MMX_NO_SANDBOX:-0}" = 1 ] && FLAGS+=(--no-sandbox)
+# shellcheck disable=SC2086
+exec "$APP/minimax-code" "${FLAGS[@]}" ${MMX_FLAGS:-} "$@"

@@ -1,0 +1,11 @@
+/build/
+/dist/
+node_modules/
+runtime/*
+!runtime/manifest.json
+!runtime/setup-runtime.sh
+!runtime/native-build/
+runtime/native-build/*
+!runtime/native-build/package.json
+!runtime/native-build/package-lock.json
+*.log
