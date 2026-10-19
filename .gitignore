@@ -9,3 +9,4 @@ runtime/native-build/*
 !runtime/native-build/package.json
 !runtime/native-build/package-lock.json
 *.log
+!/patches/linux-files/app/node_modules/

@@ -233,6 +233,38 @@ patch({ id: 'perf:lazy-screenshots-start', file: 'dist/main/modules/screenshot/i
   applied.push(`${id} (${n}/${STRIP.length} itens)`);
 }
 
+// fix1 (2026-10-19): thread principal do utility local-runtime a ~100% de CPU => timers atrasados em bloco (content-safety, token counter,
+// eval upload) => `content.retry.exceeded` + `message.rewind` ("negado pelo provedor"/espera longa). causa medida por CPU profile:
+// fs.watch recursive (polyfill JS no linux) do workspace indexing re-varrendo a árvore a cada evento (inclusive o log do próprio app).
+{
+  const WI = 'node_modules/@mavis/local-runtime/dist/workspace-indexing/';
+  const helper = path.join(ROOT, 'patches/linux-files/app', WI, 'mmx-linux-watch.js');
+  if (!fs.existsSync(helper)) fail('fix:indexing-watcher: helper ausente em patches/linux-files');
+  put(helper, path.join(APP, WI, 'mmx-linux-watch.js'));
+  applied.push('files:mmx-linux-watch.js');
+  patch({ id: 'fix:indexing-watcher-import', file: WI + 'prewarm-coordinator.js',
+    find: "import { watch as watchFs } from 'node:fs';\n",
+    replace: "import { watch as watchFs } from 'node:fs';\nimport { mmxWatchWorkspace } from './mmx-linux-watch.js'; /* mmx-linux */\n" });
+  patch({ id: 'fix:indexing-watcher', file: WI + 'prewarm-coordinator.js',
+    find: "function watchWorkspaceDefault(workspaceDir, onChange, onError) {\n",
+    replace: "function watchWorkspaceDefault(workspaceDir, onChange, onError) {\n    if (process.platform === 'linux' && process.env.MMX_RECURSIVE_WATCH !== '1') /* mmx-linux: sem polyfill recursivo */\n        return mmxWatchWorkspace(workspaceDir, onChange, onError);\n" });
+  patch({ id: 'fix:indexing-debounce', file: WI + 'prewarm-coordinator.js',
+    find: 'const DEFAULT_PREWARM_REFRESH_DEBOUNCE_MS = 500;',
+    replace: 'const DEFAULT_PREWARM_REFRESH_DEBOUNCE_MS = Number(process.env.MMX_PREWARM_DEBOUNCE_MS) || 5000; /* mmx-linux: 500 -> 5000 */' });
+}
+// fix2: revisão de conteúdo. (a) sem veredito por falha de transporte/http/upstream => api_error (segue como o V1 já faz para 5xx; auth continua fechado).
+// MMX_SAFETY_FAIL_OPEN=0 volta ao original. (b) timeout 10 s -> 6 s (MMX_SAFETY_TIMEOUT_MS). (c) janela de revisão de stream 80 -> 600 caracteres
+// (cada janela era 1 request HTTP sequencial; MMX_SAFETY_CHUNK_THRESHOLD).
+patch({ id: 'fix:safety-fail-open', file: 'node_modules/@mavis/local-runtime-v2/dist/service/content-safety/transport/turn-api.js',
+  find: "errorKind: error instanceof SafetyCheckV2Error && error.kind === 'auth' ? 'auth_error' : 'local_error',",
+  replace: "errorKind: error instanceof SafetyCheckV2Error && error.kind === 'auth' ? 'auth_error'\n                : (process.env.MMX_SAFETY_FAIL_OPEN !== '0' && error instanceof SafetyCheckV2Error && ['transport', 'http', 'upstream', 'response'].includes(error.kind)) ? 'api_error' : 'local_error', /* mmx-linux */" });
+patch({ id: 'fix:safety-timeout', file: 'node_modules/@mavis/shared/dist/safety-check-v2.js',
+  find: 'const timeout = AbortSignal.timeout(10_000);',
+  replace: 'const timeout = AbortSignal.timeout(Number(process.env.MMX_SAFETY_TIMEOUT_MS) || 6_000); /* mmx-linux */' });
+patch({ id: 'fix:safety-chunk', file: 'node_modules/@mavis/local-runtime-v2/dist/service/turn-system/agent-host/runner/output-safety-event-writer.js',
+  find: 'export const OUTPUT_SAFETY_CHUNK_THRESHOLD = 80;',
+  replace: 'export const OUTPUT_SAFETY_CHUNK_THRESHOLD = Number(process.env.MMX_SAFETY_CHUNK_THRESHOLD) || 600; /* mmx-linux */' });
+
 // opt3: bundle esbuild dos grafos ESM do utility local-runtime (import 13,5 s -> ver LOG opt3). opcional: falha => aviso, app segue com import original.
 // runtime: importEsm usa o bundle para os 3 specifiers; se o bundle faltar/falhar, volta ao import original (todos juntos, sem misturar instâncias).
 // desligar: MMX_NO_RUNTIME_BUNDLE=1 (runtime) ou MMX_NO_BUNDLE_BUILD=1 (apply).

@@ -73,6 +73,22 @@ The macOS auto-updater and hot updater are disabled. The app always uses its bun
   installed `.desktop` file. Without it, KDE and GNOME show a generic icon.
 - Hicolor icons (32–1024 px) are extracted from the official `icon.icns`.
 
+### Stability fixes
+
+Measured on a real session (CPU profile of the local-runtime process), not guessed. Details and evidence
+in [docs/stability-fixes.md](docs/stability-fixes.md).
+
+- The workspace indexing watcher used `fs.watch(..., { recursive: true })`, which on Linux is a JavaScript
+  emulation that re-scans the whole tree on every event. It pinned the runtime's main thread near 100% CPU,
+  so every timer fired late and in a burst: content reviews timed out, and chats showed "denied by provider"
+  or long waits. It is replaced by non-recursive watches that skip `node_modules`, `.git`, virtualenvs,
+  build output and logs, with a 5 s refresh debounce. `MMX_RECURSIVE_WATCH=1` restores the original.
+- A content review that returns no verdict because of a transport, HTTP or upstream failure no longer aborts
+  the turn. Authentication failures still block, and explicit rejections are unchanged.
+  `MMX_SAFETY_FAIL_OPEN=0` restores the original behavior. The review timeout drops from 10 s to 6 s
+  (`MMX_SAFETY_TIMEOUT_MS`), and streamed output is reviewed in windows of 600 characters instead of 80
+  (`MMX_SAFETY_CHUNK_THRESHOLD`), which cuts the number of sequential review requests.
+
 ### Not available on Linux
 
 - Session transfer to the cloud: its client is a closed macOS-only binary, and the app disables the feature without it.
@@ -139,6 +155,10 @@ Run `minimax-code`, or open "MiniMax Code" from the application menu.
 | `MMX_NO_SANDBOX=1` | Disable the Chromium sandbox. Use only if your kernel lacks unprivileged user namespaces and `chrome-sandbox` is not setuid root. |
 | `MMX_FLAGS="..."` | Extra Chromium flags. |
 | `MMX_CUA_KWIN_FALLBACK=0` | Disable the KDE Wayland computer-use fallback. |
+| `MMX_RECURSIVE_WATCH=1` | Use the original recursive workspace watcher. |
+| `MMX_SAFETY_FAIL_OPEN=0` | Treat a content review without a verdict as a failure, as upstream does. |
+| `MMX_SAFETY_TIMEOUT_MS=<ms>` | Content review timeout (default 6000). |
+| `MMX_SAFETY_CHUNK_THRESHOLD=<chars>` | Characters of streamed output per content review (default 600). |
 
 The port uses the same profile directories as the official app. If you also run the official MiniMax
 Agent through Wine or another port, close it first, and back up `~/.config/MiniMax Agent` and
